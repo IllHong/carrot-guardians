@@ -1146,7 +1146,13 @@ function oppTick() {
   });
 }
 let tt;
-function toast(msg) { const el = $("toast"); el.textContent = msg; el.classList.remove("hide"); clearTimeout(tt); tt = setTimeout(() => el.classList.add("hide"), 2100); }
+function placeToast(el) {
+  /* 상대 목록·일시정지 버튼 아래, 보드 위 빈 잔디에 띄움 */
+  const st = stage.getBoundingClientRect();
+  const base = getComputedStyle(el).position === "fixed" ? 0 : el.offsetParent ? el.offsetParent.getBoundingClientRect().top : 0;
+  el.style.top = Math.round(st.top - base + 48) + "px";
+}
+function toast(msg) { const el = $("toast"); el.textContent = msg; placeToast(el); el.classList.remove("hide"); clearTimeout(tt); tt = setTimeout(() => el.classList.add("hide"), 2100); }
 function mini(type, size) {
   const c = document.createElement("canvas"); c.width = size * 2; c.height = size * 2;
   const g = c.getContext("2d"); g.scale(2, 2); drawAnimal(g, type, size / 2, size * .58, size * .3, 1); return c;
