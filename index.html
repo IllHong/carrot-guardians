@@ -806,7 +806,7 @@ function start(mode) {
 function startGame(mode) {
   newGame(mode, true); mStart.hidden = true; closeSheet(); lastHud = "";
   const comp = mode === "comp";
-  document.getElementById("app").classList.toggle("comp", comp);
+  document.getElementById("app").classList.toggle("comp", comp); resize();
   $("bAd").hidden = comp; $("bSpeed").hidden = comp;
   if (comp) { speed = 1; $("bSpeed").textContent = "1배"; }
   toast("동물 뽑기로 시작해요 · 6초 뒤 1라운드");
@@ -973,11 +973,16 @@ function star(g, x, y, r, fill) {
 const stage = document.getElementById("stage"), cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const mapCv = document.createElement("canvas");
 let T = 40, OX = 0, OY = 0, dpr = 1, W = 0, H = 0, clock = 0;
+/* 경쟁모드는 상대 목록 때문에 세로가 빠듯해서, 보드를 조금 작게 해 위쪽에 숨 쉴 틈을 남김 */
+function boardT(w, h) {
+  const comp = document.getElementById("app").classList.contains("comp");
+  return comp ? Math.min(w / (COLS + .1) * .9, h / (ROWS + 1.3)) : Math.min(w / (COLS + .1), h / (ROWS + .55));
+}
 function resize() {
   const r = stage.getBoundingClientRect(); W = r.width; H = r.height;
   dpr = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-  T = Math.min(W / (COLS + .1), H / (ROWS + .55)); OX = (W - T * COLS) / 2; OY = H - T * ROWS - T * .06;
+  T = boardT(W, H); OX = (W - T * COLS) / 2; OY = H - T * ROWS - T * .06;
   buildMap();
 }
 function seeded(seed) { return () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
@@ -1202,7 +1207,7 @@ function placeToast(el) {
   const base = getComputedStyle(el).position === "fixed" ? 0 : el.offsetParent ? el.offsetParent.getBoundingClientRect().top : 0;
   /* 위 상자들과 보드 사이 잔디 한가운데 */
   /* 공간이 되면 일시정지 버튼(위 46px) 아래로, 아니면 보드 바로 위까지 내림 */
-  const t2 = Math.min(st.width / (COLS + .1), st.height / (ROWS + .55)); /* 화면 전환 직후에도 맞도록 지금 크기로 다시 계산 */
+  const t2 = boardT(st.width, st.height); /* 화면 전환 직후에도 맞도록 지금 크기로 다시 계산 */
   const gap = Math.max(0, st.height - t2 * ROWS - t2 * .06 - MAP_PAD * t2), h = el.offsetHeight || 35;
   const from = Math.max(2, Math.min(46, gap - h - 4));
   el.style.top = Math.round(st.top - base + Math.max(from, from + (gap - from - h) / 2)) + "px";
