@@ -1,0 +1,13 @@
+{
+  "name": "carrot-guardians-android",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prepare-web": "node -e \"const f=require('fs');f.mkdirSync('www',{recursive:true});f.copyFileSync('../index.html','www/index.html');f.copyFileSync('../og.jpg','www/og.jpg')\""
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/core": "8.5.3"
+  }
+}

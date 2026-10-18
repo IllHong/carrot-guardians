@@ -1,0 +1,6 @@
+{
+  "appId": "com.ilhong.carrotguardians",
+  "appName": "당근밭 수비대",
+  "webDir": "www",
+  "android": { "backgroundColor": "#8fca4c" }
+}

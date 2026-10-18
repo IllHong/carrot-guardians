@@ -1,0 +1,58 @@
+name: Android APK (원스토어)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "버전 이름 (예: 1.0.0)"
+        required: true
+        default: "1.0.0"
+      version_code:
+        description: "버전 코드 (올릴 때마다 1씩 증가)"
+        required: true
+        default: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install Capacitor
+        run: npm install
+      - name: Copy game files
+        run: npm run prepare-web
+      - name: Create Android project
+        run: npx cap add android && npx cap sync android
+      - name: Set version
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ inputs.version_code }}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ inputs.version_name }}\"/" android/app/build.gradle
+          grep -n "version" android/app/build.gradle
+      - name: Build release APK (unsigned)
+        working-directory: android-app/android
+        run: ./gradlew assembleRelease --no-daemon
+      - name: Sign APK
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          echo "$KS_B64" | base64 -d > release.jks
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/zipalign -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          $BT/apksigner sign --ks release.jks --ks-pass env:KS_PASS --ks-key-alias carrot --key-pass env:KS_PASS --out carrot-guardians-${{ inputs.version_name }}.apk aligned.apk
+          $BT/apksigner verify carrot-guardians-${{ inputs.version_name }}.apk
+          rm release.jks
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carrot-guardians-apk-${{ inputs.version_name }}
+          path: android-app/carrot-guardians-${{ inputs.version_name }}.apk
