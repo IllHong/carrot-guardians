@@ -216,6 +216,9 @@ body{background:#8fca4c var(--bgimg) center/cover no-repeat}
 .row2{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .tut .linkbtn{align-self:center;color:#a08a74;font-size:13px}
 
+.btn.tap{font-size:20px;padding:14px 10px;animation:tapPulse 1.6s ease-in-out infinite}
+@keyframes tapPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion: reduce){.btn.tap{animation:none}}
 .snd.menu{left:auto;right:4px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='5' width='4' height='14' rx='1.5' fill='%238a5a2b'/%3E%3Crect x='14' y='5' width='4' height='14' rx='1.5' fill='%238a5a2b'/%3E%3C/svg%3E")}
 </style>
 
@@ -253,7 +256,8 @@ body{background:#8fca4c var(--bgimg) center/cover no-repeat}
       <li>못 잡은 적은 그대로 남아 쌓여요. 적이 60마리가 되면 탈락!</li>
     </ul>
     <div class="kv"><span>경쟁모드 우승</span><b id="sWins">0회</b><span>생존모드 최고</span><b id="sBest">0라운드</b><span>무한모드 최고</span><b id="sInf">0라운드</b></div>
-    <div class="stack">
+    <button id="bTap" class="btn primary tap" type="button">화면을 터치해서 시작<small>소리가 함께 나와요</small></button>
+    <div class="stack" id="startStack" hidden>
       <button id="bComp" class="btn primary">경쟁모드 (AI 5명과 대결)</button>
       <button id="bSurv" class="btn">생존모드 (40라운드)</button>
       <button id="bInf" class="btn">무한모드 (끝까지 버티기)</button>
@@ -728,6 +732,7 @@ document.getElementById("bRevive").onclick = () => watchAd(() => {
 });
 document.getElementById("bAgain").onclick = () => { mOver.hidden = true; start(S.mode); };
 document.getElementById("bHome").onclick = () => { mOver.hidden = true; home(); };
+document.getElementById("bTap").onclick = () => { document.getElementById("bTap").hidden = true; document.getElementById("startStack").hidden = false; };
 document.getElementById("bComp").onclick = () => start("comp");
 document.getElementById("bSurv").onclick = () => start("surv");
 document.getElementById("bInf").onclick = () => start("inf");
