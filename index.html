@@ -49,6 +49,8 @@ html,body{height:100%}
 body{background:var(--sky);color:var(--ink);font-family:var(--f-body);overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;
   padding-left:max(12px, env(safe-area-inset-left, 0px));padding-right:max(12px, env(safe-area-inset-right, 0px));padding-block:0}
 #app{height:100%;display:flex;flex-direction:column;gap:6px;padding-block:8px;max-width:520px;margin:0 auto}
+/* 토스 앱 위쪽의 닫기·더보기 버튼과 겹치지 않게 내림 */
+html.toss #app{padding-top:48px}
 .hud{display:grid;grid-template-columns:1.1fr .9fr 1.5fr auto;gap:6px}
 .stat{background:var(--panel);border-radius:12px;box-shadow:0 1px 4px rgba(60,80,30,.14);padding:4px 8px;min-width:0;display:flex;flex-direction:column;justify-content:center}
 .stat .lbl{font-size:11px;color:var(--muted);white-space:nowrap}
@@ -669,6 +671,7 @@ function checkMissions() {
 const AIT_AD_GROUP_ID = ""; /* 콘솔에서 보상형 광고 ID를 발급받으면 여기에 넣기 */
 const TOSS = (() => {
   const A = window.AIT, on = !!A;
+  if (on) document.documentElement.classList.add("toss");
   const sup = f => { try { return !!(f && (!f.isSupported || f.isSupported())); } catch (e) { return false; } };
   let ready = false, loading = false;
   const adOn = () => on && !!AIT_AD_GROUP_ID && sup(A.loadFullScreenAd) && sup(A.showFullScreenAd);
@@ -1195,7 +1198,12 @@ function placeToast(el) {
   /* 상대 목록·일시정지 버튼 아래, 보드 위 빈 잔디에 띄움 */
   const st = stage.getBoundingClientRect();
   const base = getComputedStyle(el).position === "fixed" ? 0 : el.offsetParent ? el.offsetParent.getBoundingClientRect().top : 0;
-  el.style.top = Math.round(st.top - base + 48) + "px";
+  /* 위 상자들과 보드 사이 잔디 한가운데 */
+  /* 공간이 되면 일시정지 버튼(위 46px) 아래로, 아니면 보드 바로 위까지 내림 */
+  const t2 = Math.min(st.width / (COLS + .1), st.height / (ROWS + .55)); /* 화면 전환 직후에도 맞도록 지금 크기로 다시 계산 */
+  const gap = Math.max(0, st.height - t2 * ROWS - t2 * .06 - MAP_PAD * t2), h = el.offsetHeight || 35;
+  const from = Math.max(2, Math.min(46, gap - h - 4));
+  el.style.top = Math.round(st.top - base + Math.max(from, from + (gap - from - h) / 2)) + "px";
 }
 function toast(msg) { const el = $("toast"); el.textContent = msg; placeToast(el); el.classList.remove("hide"); clearTimeout(tt); tt = setTimeout(() => el.classList.add("hide"), 2100); }
 function mini(type, size) {
