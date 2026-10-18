@@ -13,3 +13,6 @@
 ## 음악
 - 게임 중 배경음악: 직접 제작 (Abocado · Lyria 3 Pro)
 - 시작 화면 음악: "Interior Birdecorator Menu" by Abstraction — CC0 (https://tallbeard.itch.io/music-loop-bundle)
+
+## 앱인토스 빌드
+`toss/` 폴더에서 `npm install` 후 `npm run build` → `carrot-guardians.ait` 생성 (루트 index.html에 SDK 브리지를 끼워 넣음)

@@ -261,7 +261,7 @@ body{background:#8fca4c var(--bgimg) center/cover no-repeat}
       <button id="bComp" class="btn primary">경쟁모드 (AI 5명과 대결)</button>
       <button id="bSurv" class="btn">생존모드 (40라운드)</button>
       <button id="bInf" class="btn">무한모드 (끝까지 버티기)</button>
-      <div class="links"><button id="bHow" class="linkbtn" type="button">게임 방법 보기</button><button id="bSnd2" class="linkbtn" type="button">소리 설정</button></div>
+      <div class="links"><button id="bHow" class="linkbtn" type="button">게임 방법 보기</button><button id="bSnd2" class="linkbtn" type="button">소리 설정</button><button id="bRank" class="linkbtn" type="button" hidden>랭킹 보기</button></div>
     </div>
   </div>
 </div>
@@ -665,6 +665,46 @@ function checkMissions() {
   if (Object.values(by).some(n => n >= 5)) mission("five");
 }
 
+/* ---------- 앱인토스 연동 (토스 앱 안에서만 동작, 웹에서는 아무것도 안 함) ---------- */
+const AIT_AD_GROUP_ID = ""; /* 콘솔에서 보상형 광고 ID를 발급받으면 여기에 넣기 */
+const TOSS = (() => {
+  const A = window.AIT, on = !!A;
+  const sup = f => { try { return !!(f && (!f.isSupported || f.isSupported())); } catch (e) { return false; } };
+  let ready = false, loading = false;
+  const adOn = () => on && !!AIT_AD_GROUP_ID && sup(A.loadFullScreenAd) && sup(A.showFullScreenAd);
+  function preload() {
+    if (!adOn() || ready || loading) return;
+    loading = true;
+    try {
+      A.loadFullScreenAd({ options: { adGroupId: AIT_AD_GROUP_ID },
+        onEvent: e => { if (e && e.type === "loaded") { ready = true; loading = false; } },
+        onError: () => { loading = false; } });
+    } catch (e) { loading = false; }
+  }
+  function showAd(onReward, onFail) {
+    if (!adOn()) return false;
+    if (!ready) { preload(); onFail("광고를 준비하고 있어요. 잠시 뒤 다시 눌러 주세요"); return true; }
+    ready = false;
+    let got = false, fin = false;
+    const fail = m => { if (fin) return; fin = true; onFail(m); preload(); };
+    const end = () => { if (fin) return; fin = true; got ? onReward() : onFail("광고를 끝까지 보면 보상을 받아요"); preload(); };
+    try {
+      A.showFullScreenAd({ options: { adGroupId: AIT_AD_GROUP_ID },
+        onEvent: e => { const t = e && e.type; if (t === "userEarnedReward") got = true; else if (t === "dismissed") end(); else if (t === "failedToShow") fail("광고를 불러오지 못했어요"); },
+        onError: () => fail("광고를 불러오지 못했어요") });
+    } catch (e) { fail("광고를 불러오지 못했어요"); }
+    return true;
+  }
+  return {
+    on, preload, showAd,
+    canBoard: () => on && sup(A.Game && A.Game.openLeaderboard),
+    openBoard() { try { const r = A.Game.openLeaderboard(); if (r && r.catch) r.catch(() => {}); } catch (e) {} },
+    submit(score) { if (!on || !sup(A.Game && A.Game.setLeaderboardScore)) return; try { const r = A.Game.setLeaderboardScore({ score: String(score) }); if (r && r.catch) r.catch(() => {}); } catch (e) {} },
+    onBack(fn) { if (!on) return; try { A.graniteEvent.addEventListener("backEvent", { onEvent: fn, onError: () => {} }); } catch (e) {} },
+    close() { if (!on) return; try { const r = A.closeView(); if (r && r.catch) r.catch(() => {}); } catch (e) {} },
+  };
+})();
+
 /* ---------- end states ---------- */
 const mOver = document.getElementById("mOver"), mStart = document.getElementById("mStart"), mAd = document.getElementById("mAd");
 function eliminate() {
@@ -676,6 +716,7 @@ function eliminate() {
   } else if (S.mode === "inf") {
     S.result = { kind: "out", record: S.round > (save.bestInf || 0) };
     if (S.result.record) save.bestInf = S.round;
+    TOSS.submit(S.round);
   } else {
     S.result = { kind: "out" };
     if (S.round > save.best) save.best = S.round;
@@ -731,10 +772,14 @@ function showOver() {
   mOver.hidden = false;
 }
 function watchAd(done) {
-  mAd.hidden = false; BGM.hold(true); let n = 3; document.getElementById("adCount").textContent = n;
+  const was = S.paused; S.paused = true; BGM.hold(true);
+  const back = () => { S.paused = was; last = performance.now(); BGM.hold(S.paused); };
+  if (TOSS.showAd(() => { back(); done(); }, msg => { back(); toast(msg); })) return;
+  /* 웹(테스트)에서는 3초 안내 화면으로 대신함 */
+  mAd.hidden = false; let n = 3; document.getElementById("adCount").textContent = n;
   const iv = setInterval(() => {
     n--; document.getElementById("adCount").textContent = n;
-    if (n <= 0) { clearInterval(iv); mAd.hidden = true; BGM.hold(S.paused); done(); }
+    if (n <= 0) { clearInterval(iv); mAd.hidden = true; back(); done(); }
   }, 1000);
 }
 document.getElementById("bRevive").onclick = () => watchAd(() => {
@@ -760,7 +805,7 @@ function startGame(mode) {
   $("bAd").hidden = comp; $("bSpeed").hidden = comp;
   if (comp) { speed = 1; $("bSpeed").textContent = "1배"; }
   toast("동물 뽑기로 시작해요 · 6초 뒤 1라운드");
-  BGM.play("game");
+  BGM.play("game"); TOSS.preload();
 }
 function home() {
   newGame("comp", false); demo();
@@ -1485,6 +1530,18 @@ $("pQuit").onclick = () => askQuit("quit");
 $("pNo").onclick = () => { $("pMain").hidden = false; $("pConfirm").hidden = true; };
 $("pYes").onclick = () => { mPause.hidden = true; const m = S.mode; S.paused = false; BGM.hold(false); if (pAction === "restart") startGame(m); else home(); };
 document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+$("bRank").hidden = !TOSS.canBoard();
+$("bRank").onclick = () => TOSS.openBoard();
+/* 토스 앱의 뒤로가기: 열린 창 닫기 → 게임 중이면 일시정지 → 처음 화면이면 게임 종료 */
+TOSS.onBack(() => {
+  if (!mAd.hidden) return;
+  if (!mSound.hidden) { closeSound(); return; }
+  if (!mTut.hidden) { closeTut(); return; }
+  if (!mPause.hidden) { if (!$("pConfirm").hidden) { $("pMain").hidden = false; $("pConfirm").hidden = true; } else resume(); return; }
+  if (S.live && !S.over) { pause(); return; }
+  if (!mOver.hidden) { mOver.hidden = true; home(); return; }
+  TOSS.close();
+});
 const syncMenu = () => { $("bMenu").hidden = !S.live || S.over; };
 home();
 resize();

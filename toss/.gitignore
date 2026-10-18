@@ -1,0 +1,4 @@
+node_modules/
+dist/
+*.ait
+src/bridge.min.js
