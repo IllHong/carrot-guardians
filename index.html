@@ -233,7 +233,7 @@ body{background:#8fca4c var(--bgimg) center/cover no-repeat}
   </header>
   <section class="opps" id="opps"></section>
   <main id="stage">
-    <button id="bSound" class="snd" type="button" aria-label="소리 설정"></button>
+    <button id="bSound" class="snd" type="button" aria-label="소리 설정" hidden></button>
     <button id="bMenu" class="snd menu" type="button" aria-label="일시정지 메뉴"></button>
     <canvas id="cv" aria-label="당근밭. 안쪽 칸의 동물을 눌러 조합하거나 판매하세요"></canvas>
     <div id="sheet" class="sheet" hidden></div>
@@ -932,7 +932,27 @@ function resize() {
 }
 function seeded(seed) { return () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
 const MAP_PAD = .2;
+/* 보드 위 빈 잔디에 배경 그림 윗부분(울타리·당근밭)을 내려서 채움 */
+const decoCv = document.createElement("canvas");
+const BGI = new Image();
+{ const m = /url\(["']?(data:[^"')]+)/.exec(getComputedStyle(document.documentElement).getPropertyValue("--bgimg")); if (m) { BGI.onload = () => { if (T) buildMap(); }; BGI.src = m[1]; } }
+function buildDeco() {
+  const top = OY - MAP_PAD * T + T * .25;
+  decoCv.width = Math.max(1, Math.round(W * dpr)); decoCv.height = Math.max(1, Math.round(Math.max(1, top) * dpr));
+  if (!ok(BGI) || top < T * .6) return;
+  const g = decoCv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const sc = W / BGI.naturalWidth, sh = Math.min(BGI.naturalHeight * .3, top / sc), dh = sh * sc;
+  g.drawImage(BGI, 0, 0, BGI.naturalWidth, sh, 0, top - dh, W, dh);
+  const fade = g.createLinearGradient(0, top - dh, 0, top - dh * .45);
+  fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,1)");
+  g.globalCompositeOperation = "destination-in"; g.fillStyle = fade; g.fillRect(0, 0, W, top);
+  const side = g.createLinearGradient(0, 0, W, 0), e = Math.min(.08, 14 / W);
+  side.addColorStop(0, "rgba(0,0,0,0)"); side.addColorStop(e, "rgba(0,0,0,1)"); side.addColorStop(1 - e, "rgba(0,0,0,1)"); side.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = side; g.fillRect(0, 0, W, top);
+  g.globalCompositeOperation = "source-over";
+}
 function buildMap() {
+  buildDeco();
   mapCv.width = Math.max(1, Math.round(COLS * T * dpr)); mapCv.height = Math.max(1, Math.round((ROWS + MAP_PAD) * T * dpr));
   const g = mapCv.getContext("2d");
   if (ok(UIM.board)) { g.setTransform(dpr, 0, 0, dpr, 0, 0); g.drawImage(UIM.board, 0, 0, COLS * T, (ROWS + MAP_PAD) * T); }
@@ -984,6 +1004,7 @@ const DISP = () => getComputedStyle(document.documentElement).getPropertyValue("
 let dispFont = "Jua, sans-serif";
 function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (decoCv.width > 1) ctx.drawImage(decoCv, 0, 0, W, decoCv.height / dpr);
   ctx.drawImage(mapCv, OX, OY - MAP_PAD * T, COLS * T, (ROWS + MAP_PAD) * T);
   ctx.setTransform(dpr, 0, 0, dpr, OX * dpr, OY * dpr);
   const selT = S.sel ? S.towers.get(S.sel.c + "," + S.sel.r) : null;
