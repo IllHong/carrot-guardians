@@ -9,3 +9,7 @@
 - 모바일 세로 화면 기준, 브라우저에서 바로 실행 (설치 불필요)
 
 현재 테스트 버전: 광고 대신 3초 안내 화면이 나옵니다. 앱인토스 출시 준비 중.
+
+## 음악
+- 게임 중 배경음악: 직접 제작 (Abocado · Lyria 3 Pro)
+- 시작 화면 음악: "Interior Birdecorator Menu" by Abstraction — CC0 (https://tallbeard.itch.io/music-loop-bundle)
