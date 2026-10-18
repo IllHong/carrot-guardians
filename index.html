@@ -51,6 +51,8 @@ body{background:var(--sky);color:var(--ink);font-family:var(--f-body);overflow:h
 #app{height:100%;display:flex;flex-direction:column;gap:6px;padding-block:8px;max-width:520px;margin:0 auto}
 /* 토스 앱 위쪽의 닫기·더보기 버튼과 겹치지 않게 내림 */
 html.toss #app{padding-top:48px}
+/* 토스 앱은 아래 여백이 넉넉해서, 보드와 아래 버튼을 그만큼 내림 */
+html.toss{padding-bottom:min(env(safe-area-inset-bottom,0px),16px)}
 .hud{display:grid;grid-template-columns:1.1fr .9fr 1.5fr auto;gap:6px}
 .stat{background:var(--panel);border-radius:12px;box-shadow:0 1px 4px rgba(60,80,30,.14);padding:4px 8px;min-width:0;display:flex;flex-direction:column;justify-content:center}
 .stat .lbl{font-size:11px;color:var(--muted);white-space:nowrap}
