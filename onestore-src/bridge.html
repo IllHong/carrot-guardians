@@ -1,0 +1,38 @@
+<script type="module">
+/* 원스토어 H5 Game SDK 연결 (원스토어 앱 안에서만 동작, 일반 브라우저에서는 아무것도 안 함) */
+import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
+const REWARD_PLACEMENT_ID = ""; /* 원스토어 개발자센터 > 수익화 > 인앱 광고에서 발급한 리워드 지면 ID */
+const sdk = createSDK();
+const G = () => window.__game || {};
+let adOn = false;
+sdk.on("pause", e => { try { G().pause && G().pause(e && e.reason); } catch (_) {} });
+sdk.on("resume", () => { try { G().resume && G().resume(); } catch (_) {} });
+sdk.on("exit", () => { try { G().save && G().save(); } catch (_) {} });
+try {
+  sdk.onBackPressed(() => { try { return G().back ? G().back() === true : false; } catch (_) { return false; } });
+} catch (_) {}
+const rid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2));
+window.__platform = {
+  name: "onestore",
+  showRewarded(onReward, onFail) {
+    if (!adOn || !REWARD_PLACEMENT_ID) return false;
+    sdk.ads.showRewardedAsync({ placementId: REWARD_PLACEMENT_ID, requestId: rid() }).then(r => {
+      if (r && r.status === "rewarded") onReward();
+      else if (r && r.status === "dismissed") onFail("광고를 끝까지 보면 보상을 받아요");
+      else onFail(r && r.reason === "no_fill" ? "지금은 볼 수 있는 광고가 없어요" : "광고를 불러오지 못했어요");
+      sdk.ads.loadRewarded({ placementId: REWARD_PLACEMENT_ID });
+    }, () => onFail("광고를 불러오지 못했어요"));
+    return true;
+  },
+};
+(async () => {
+  try {
+    const r = await sdk.initializeAsync();
+    if (r && r.err) return; /* 일반 브라우저 */
+    sdk.setLoadingProgress(100);
+    await sdk.startGameAsync();
+    adOn = !!(sdk.ads && sdk.ads.isSupported && sdk.ads.isSupported("rewarded"));
+    if (adOn && REWARD_PLACEMENT_ID) sdk.ads.loadRewarded({ placementId: REWARD_PLACEMENT_ID });
+  } catch (_) {}
+})();
+</script>

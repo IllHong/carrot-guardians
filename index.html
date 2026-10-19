@@ -779,7 +779,9 @@ function showOver() {
 function watchAd(done) {
   const was = S.paused; S.paused = true; BGM.hold(true);
   const back = () => { S.paused = was; last = performance.now(); BGM.hold(S.paused); };
-  if (TOSS.showAd(() => { back(); done(); }, msg => { back(); toast(msg); })) return;
+  const ok = () => { back(); done(); }, ng = msg => { back(); toast(msg); };
+  if (window.__platform && window.__platform.showRewarded && window.__platform.showRewarded(ok, ng)) return;
+  if (TOSS.showAd(ok, ng)) return;
   /* 웹(테스트)에서는 3초 안내 화면으로 대신함 */
   mAd.hidden = false; let n = 3; document.getElementById("adCount").textContent = n;
   const iv = setInterval(() => {
@@ -1548,15 +1550,24 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) pause
 $("bRank").hidden = !TOSS.canBoard();
 $("bRank").onclick = () => TOSS.openBoard();
 /* 토스 앱의 뒤로가기: 열린 창 닫기 → 게임 중이면 일시정지 → 처음 화면이면 게임 종료 */
-TOSS.onBack(() => {
-  if (!mAd.hidden) return;
-  if (!mSound.hidden) { closeSound(); return; }
-  if (!mTut.hidden) { closeTut(); return; }
-  if (!mPause.hidden) { if (!$("pConfirm").hidden) { $("pMain").hidden = false; $("pConfirm").hidden = true; } else resume(); return; }
-  if (S.live && !S.over) { pause(); return; }
-  if (!mOver.hidden) { mOver.hidden = true; home(); return; }
-  TOSS.close();
-});
+/* 뒤로가기 공통 처리: 처리했으면 true, 처음 화면이라 앱에 맡길 때는 false */
+function handleBack() {
+  if (!mAd.hidden) return true;
+  if (!mSound.hidden) { closeSound(); return true; }
+  if (!mTut.hidden) { closeTut(); return true; }
+  if (!mPause.hidden) { if (!$("pConfirm").hidden) { $("pMain").hidden = false; $("pConfirm").hidden = true; } else resume(); return true; }
+  if (S.live && !S.over) { pause(); return true; }
+  if (!mOver.hidden) { mOver.hidden = true; home(); return true; }
+  return false;
+}
+TOSS.onBack(() => { if (!handleBack()) TOSS.close(); });
+/* 원스토어 등 다른 플랫폼 연결용 (원스토어 빌드에서 window.__platform으로 받아 씀) */
+window.__game = {
+  back: handleBack,
+  pause(reason) { if (reason !== "ad" && S.live && !S.over) pause(); BGM.hold(true); },
+  resume() { BGM.hold(!!S.paused); },
+  save: persist,
+};
 const syncMenu = () => { $("bMenu").hidden = !S.live || S.over; };
 home();
 resize();
